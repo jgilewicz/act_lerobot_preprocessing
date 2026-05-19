@@ -149,6 +149,28 @@ def apply_image_transform_to_array(
     return _apply_transform_to_rgb_uint8_image(image_rgb, EXPERIMENTS[transform_name])
 
 
+def get_transformed_image_size(
+    height: int | None, width: int | None, transform_name: str
+) -> tuple[int | None, int | None]:
+    if transform_name == "none":
+        return height, width
+
+    if transform_name not in EXPERIMENTS:
+        raise ValueError(
+            f"Unknown transform '{transform_name}'. Available: {sorted(EXPERIMENTS)}"
+        )
+
+    exp = EXPERIMENTS[transform_name]
+    if exp.image_transform == "downsample":
+        if exp.downsample_size is None:
+            raise ValueError(
+                f"Experiment '{exp.name}' is missing `downsample_size`."
+            )
+        return exp.downsample_size, exp.downsample_size
+
+    return height, width
+
+
 def apply_image_transform(batch: dict, exp: ExperimentConfig) -> dict:
     if exp.image_transform == "rgb":
         return batch

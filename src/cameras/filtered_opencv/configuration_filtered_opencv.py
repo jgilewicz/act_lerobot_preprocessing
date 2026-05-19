@@ -14,9 +14,11 @@ class FilteredOpenCVCameraConfig(OpenCVCameraConfig):
     filter_name: str = "none"
     color_mode: ColorMode = ColorMode.RGB
     rotation: Cv2Rotation = Cv2Rotation.NO_ROTATION
-    warmup_s: int = 1
+    warmup_s: int = 3
     fourcc: str | None = None
     backend: Cv2Backends = Cv2Backends.ANY
+    connection_attempts: int = 3
+    connection_retry_delay_s: float = 1.0
 
     def __post_init__(self) -> None:
         super().__post_init__()
@@ -26,3 +28,7 @@ class FilteredOpenCVCameraConfig(OpenCVCameraConfig):
             )
         if self.color_mode != ColorMode.RGB:
             raise ValueError("FilteredOpenCVCameraConfig requires color_mode='rgb'.")
+        if self.connection_attempts < 1:
+            raise ValueError("FilteredOpenCVCameraConfig requires connection_attempts >= 1.")
+        if self.connection_retry_delay_s < 0:
+            raise ValueError("FilteredOpenCVCameraConfig requires connection_retry_delay_s >= 0.")

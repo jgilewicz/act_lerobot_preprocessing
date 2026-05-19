@@ -1,0 +1,17 @@
+README.md
+pyproject.toml
+src/__init__.py
+src/cameras/__init__.py
+src/cameras/filtered_opencv/__init__.py
+src/cameras/filtered_opencv/configuration_filtered_opencv.py
+src/cameras/filtered_opencv/filtered_opencv_camera.py
+src/config/__init__.py
+src/config/configs.py
+src/scripts/__init__.py
+src/scripts/lerobot_record_filtered.py
+src/scripts/train.py
+src/um_act_lerobot.egg-info/PKG-INFO
+src/um_act_lerobot.egg-info/SOURCES.txt
+src/um_act_lerobot.egg-info/dependency_links.txt
+src/um_act_lerobot.egg-info/requires.txt
+src/um_act_lerobot.egg-info/top_level.txt

@@ -1,0 +1,70 @@
+Metadata-Version: 2.4
+Name: um-act-lerobot
+Version: 0.1.0
+Summary: Add your description here
+Requires-Python: >=3.12
+Description-Content-Type: text/markdown
+Requires-Dist: accelerate>=1.13.0
+Requires-Dist: dotenv>=0.9.9
+Requires-Dist: feetech-servo-sdk>=1.0.0
+Requires-Dist: lerobot>=0.4.4
+Requires-Dist: python-dotenv>=1.2.2
+Requires-Dist: timm>=1.0.26
+Requires-Dist: torch>=2.10.0
+Requires-Dist: wandb>=0.24.2
+
+# UM ACT LeRobot
+
+Training [ACT](https://github.com/huggingface/lerobot) policies on a pick-and-lift task.
+
+## Experiments
+
+| Name | Backbone | VAE | Transform |
+|------|----------|-----|-----------|
+| `baseline` | ResNet18 | yes | `rgb` |
+| `baseline_no_vae` | ResNet18 | no | `rgb` |
+| `canny` | ResNet18 | yes | `canny` |
+| `canny_no_vae` | ResNet18 | no | `canny` |
+| `grayscale` | ResNet18 | yes | `grayscale` |
+| `sobel` | ResNet18 | yes | `sobel` |
+| `blur_canny` | ResNet18 | yes | `blur_canny` |
+| `downsample_84` | ResNet18 | yes | `downsample_84` |
+
+## Setup
+
+```bash
+pip install -e .
+```
+
+For SO100/SO101 follower eval on Feetech hardware, this repo also installs `feetech-servo-sdk` so `scservo_sdk` is available. If you already created `.venv` before this change, rerun:
+
+```bash
+pip install -e .
+```
+
+Copy `.env.example` to `.env` and fill in the values:
+
+```
+DATASET_ID=<hf-dataset-repo-id>        # e.g. username/dataset-name
+POLICY_REPO_ID=<hf-model-repo-prefix>  # e.g. username/act — experiment name appended automatically
+HF_TOKEN=hf_...                        # Hugging Face write token
+```
+
+Log in to Weights & Biases:
+
+```bash
+wandb login
+```
+
+## Running
+
+```bash
+make train EXP=baseline
+make train-all
+```
+
+Eval with filtered camera input:
+
+```bash
+make eval MODEL=W1ndrunn3rr/act_pick_and_lift_v2_canny FILTER=canny ROBOT_PORT=/dev/ttyACM0 ROBOT_ID=my_robot
+```
