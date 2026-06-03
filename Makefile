@@ -89,7 +89,7 @@ EVAL_MODEL_FILTERS := \
 
 .DEFAULT_GOAL := help
 
-.PHONY: help record train train-all eval eval-all gradcam eval-gradcam check-eval-deps
+.PHONY: help record train train-all eval eval-direct eval-all gradcam eval-gradcam check-eval-deps
 
 help:
 	@echo ""
@@ -157,6 +157,22 @@ train-wcss: ## Train models for all experiments from EXPERIMENTS via SLURM array
 	@echo 'echo "==> Running experiment: $$EXP"' >> .slurm_train_all.sh
 	@echo 'accelerate launch --num_processes=1 -m src.scripts.train $$EXP' >> .slurm_train_all.sh
 	@sbatch .slurm_train_all.sh
+
+eval-direct: ## Run lerobot-record directly with 2 cameras + policy, no patching  [MODEL=... EVAL_EPISODES=3 EPISODE_TIME=2000]
+	lerobot-record \
+		--robot.type=$(ROBOT_TYPE) \
+		--robot.port=$(ROBOT_PORT) \
+		--robot.id=$(ROBOT_ID) \
+		--robot.cameras='{"front": {"type": "opencv", "index_or_path": $(CAMERA_INDEX), "width": $(CAMERA_WIDTH), "height": $(CAMERA_HEIGHT), "fps": $(CAMERA_FPS), "backend": $(CAMERA_BACKEND), "warmup_s": $(CAMERA_WARMUP_S)}, "side": {"type": "opencv", "index_or_path": $(CAMERA_SIDE_INDEX), "width": $(CAMERA_SIDE_WIDTH), "height": $(CAMERA_SIDE_HEIGHT), "fps": $(CAMERA_SIDE_FPS), "backend": $(CAMERA_SIDE_BACKEND), "warmup_s": $(CAMERA_SIDE_WARMUP_S)}}' \
+		--policy.path=$(MODEL) \
+		--dataset.repo_id=local/eval_direct \
+		--dataset.root=/tmp/lerobot_eval_direct \
+		--dataset.num_episodes=$(EVAL_EPISODES) \
+		--dataset.episode_time_s=$(EPISODE_TIME) \
+		--dataset.reset_time_s=$(RESET_TIME) \
+		--dataset.single_task=$(TASK) \
+		--dataset.push_to_hub=false
+	@rm -rf /tmp/lerobot_eval_direct
 
 check-eval-deps: ## Check whether evaluation dependencies are installed
 	@$(PYTHON_BIN) -c "import scservo_sdk" >/dev/null 2>&1 || \
