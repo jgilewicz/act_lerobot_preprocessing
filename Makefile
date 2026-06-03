@@ -7,9 +7,10 @@ LEADER_PORT  ?= /dev/tty.usbmodem5AAF2634711
 FOLLOWER_ID  ?= blue_follower
 LEADER_ID    ?= blue_leader_2
 
-DATASET_ID      ?= W1ndrunn3rr/pick_and_lift_v3
-POLICY_ID       ?= W1ndrunn3rr/act_pick_and_lift_v3_baseline
-DATASET_ROOT    ?= workspace/pick_and_lift_v3
+DATASET_ID          ?= W1ndrunn3rr/act_pick_and_lift_v2_baseline
+DATASET_ROOT        ?= workspace/pick_and_lift_v2
+POLICY_ID           ?= W1ndrunn3rr/act_pick_and_lift_v2_baseline
+TRAIN_POLICY_PREFIX ?= W1ndrunn3rr/act_pick_and_lift_v2
 
 EXP          ?= baseline
 MODEL        ?= $(POLICY_ID)
@@ -28,7 +29,15 @@ CAMERA_CONNECTION_ATTEMPTS     ?= 3
 CAMERA_CONNECTION_RETRY_DELAY_S ?= 1
 CAMERA_FOURCC            ?=
 
-EVAL_DATASET_REPO ?= W1ndrunn3rr/act_pick_and_lift_v3_baseline
+# Camera side: 1920x1080 @ 15fps (index 1, AVFoundation)
+CAMERA_SIDE_INDEX        ?= 1
+CAMERA_SIDE_WIDTH        ?= 1920
+CAMERA_SIDE_HEIGHT       ?= 1080
+CAMERA_SIDE_FPS          ?= 30
+CAMERA_SIDE_BACKEND      ?= 1200
+CAMERA_SIDE_WARMUP_S     ?= 3
+
+EVAL_DATASET_REPO ?= W1ndrunn3rr/act_pick_and_lift_v2_baseline
 EVAL_EPISODES     ?= 3
 EVAL_TRIALS       ?= 10
 EVAL_OVERWRITE    ?= true
@@ -58,13 +67,6 @@ RECORD_CAM0_HEIGHT    ?= 1080
 RECORD_CAM0_FPS       ?= 30
 RECORD_CAM0_BACKEND   ?= 1200
 RECORD_CAM0_WARMUP_S  ?= 15
-# Camera side: 1920x1080 @ 30fps (external USB, index 1)
-RECORD_CAM1_INDEX     ?= 1
-RECORD_CAM1_WIDTH     ?= 1920
-RECORD_CAM1_HEIGHT    ?= 1080
-RECORD_CAM1_FPS       ?= 30
-RECORD_CAM1_BACKEND   ?= 1200
-RECORD_CAM1_WARMUP_S  ?= 15
 
 GRADCAM_POLICY_PATH  ?= $(MODEL)
 GRADCAM_DATASET_ID   ?= $(DATASET_ID)
@@ -112,7 +114,7 @@ record: ## Record a teleoperation dataset  [RECORD_DATASET_ID=... RECORD_NUM_EPI
 		--teleop.type=so101_leader \
 		--teleop.port=$(LEADER_PORT) \
 		--teleop.id=$(LEADER_ID) \
-		--robot.cameras='{"front": {"type": "opencv", "index_or_path": $(RECORD_CAM0_INDEX), "width": $(RECORD_CAM0_WIDTH), "height": $(RECORD_CAM0_HEIGHT), "fps": $(RECORD_CAM0_FPS), "backend": $(RECORD_CAM0_BACKEND), "warmup_s": $(RECORD_CAM0_WARMUP_S)}, "side": {"type": "opencv", "index_or_path": $(RECORD_CAM1_INDEX), "width": $(RECORD_CAM1_WIDTH), "height": $(RECORD_CAM1_HEIGHT), "fps": $(RECORD_CAM1_FPS), "backend": $(RECORD_CAM1_BACKEND), "warmup_s": $(RECORD_CAM1_WARMUP_S)}}' \
+		--robot.cameras='{"front": {"type": "opencv", "index_or_path": $(RECORD_CAM0_INDEX), "width": $(RECORD_CAM0_WIDTH), "height": $(RECORD_CAM0_HEIGHT), "fps": $(RECORD_CAM0_FPS), "backend": $(RECORD_CAM0_BACKEND), "warmup_s": $(RECORD_CAM0_WARMUP_S)}}' \
 		--display_data=$(RECORD_DISPLAY_DATA) \
 		--dataset.repo_id=$(RECORD_DATASET_ID) \
 		--dataset.root=$(RECORD_DATASET_ROOT) \
@@ -122,7 +124,10 @@ record: ## Record a teleoperation dataset  [RECORD_DATASET_ID=... RECORD_NUM_EPI
 		--resume=$(RECORD_RESUME) 
 
 
-train: ## Train a single model  [EXP=baseline]
+train: ## Train a single model  [EXP=baseline DATASET_ID=... TRAIN_POLICY_PREFIX=...]
+	DATASET_ID=$(DATASET_ID) \
+	DATASET_ROOT=$(DATASET_ROOT) \
+	POLICY_REPO_ID=$(TRAIN_POLICY_PREFIX) \
 	accelerate launch \
 		--num_processes=2 \
 		--num_machines=1 \
@@ -131,9 +136,12 @@ train: ## Train a single model  [EXP=baseline]
 		--multi_gpu \
 		-m src.scripts.train $(EXP)
 
-train-all: ## Train models for all experiments from EXPERIMENTS
+train-all: ## Train models for all experiments from EXPERIMENTS  [DATASET_ID=... TRAIN_POLICY_PREFIX=...]
 	@for exp in $(EXPERIMENTS); do \
 		echo "==> $$exp"; \
+		DATASET_ID=$(DATASET_ID) \
+		DATASET_ROOT=$(DATASET_ROOT) \
+		POLICY_REPO_ID=$(TRAIN_POLICY_PREFIX) \
 		accelerate launch --num_processes=1 -m src.scripts.train $$exp || exit $$?; \
 	done
 
@@ -155,7 +163,7 @@ train-wcss: ## Train models for all experiments from EXPERIMENTS via SLURM array
 	@echo "EXPERIMENTS=($(EXPERIMENTS))" >> .slurm_train_all.sh
 	@echo 'EXP=$${EXPERIMENTS[$$SLURM_ARRAY_TASK_ID-1]}' >> .slurm_train_all.sh
 	@echo 'echo "==> Running experiment: $$EXP"' >> .slurm_train_all.sh
-	@echo 'accelerate launch --num_processes=1 -m src.scripts.train $$EXP' >> .slurm_train_all.sh
+	@echo 'DATASET_ID=$(DATASET_ID) DATASET_ROOT=$(DATASET_ROOT) POLICY_REPO_ID=$(TRAIN_POLICY_PREFIX) accelerate launch --num_processes=1 -m src.scripts.train $$EXP' >> .slurm_train_all.sh
 	@sbatch .slurm_train_all.sh
 
 eval-direct: ## Run lerobot-record directly with 2 cameras + policy, no patching  [MODEL=... EVAL_EPISODES=3 EPISODE_TIME=2000]
