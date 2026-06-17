@@ -1,4 +1,4 @@
-# UM ACT LeRobot
+# ACT LeRobot Preprocessing Research
 
 Training [ACT](https://github.com/huggingface/lerobot) policies on a pick-and-lift task.
 
